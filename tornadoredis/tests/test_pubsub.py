@@ -218,7 +218,7 @@ class SockJSSubscriberTestCase(RedisTestCase):
     def test_publish_unicode(self):
         broadcaster = DummyConnection()
         yield gen.Task(self.subscriber.subscribe, 'test.channel', broadcaster)
-        data = u'лабуда-ерунда'
+        data = 'лабуда-ерунда'
         self.publisher.publish('test.channel', data)
 
         yield gen.Task(self.pause)

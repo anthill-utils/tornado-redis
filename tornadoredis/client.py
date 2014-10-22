@@ -458,7 +458,7 @@ class Client(object):
         if not response:
             raise ResponseError('EmptyResponse')
         else:
-            response = to_unicode(response)
+            response = to_basestring(response)
             response = response[:-2]
         callback(response)
 

@@ -23,7 +23,7 @@ class ServerCommandsTestCase(RedisTestCase):
         res = yield gen.Task(self.client.set, 'foo', 'бар')
         self.assertEqual(res, True)
         res = yield gen.Task(self.client.get, 'foo')
-        self.assertEqual(res, u'бар')
+        self.assertEqual(res, 'бар')
         self.stop()
 
     @async_test
@@ -1195,4 +1195,15 @@ class ServerCommandsTestCase(RedisTestCase):
         self.assertIn(int(res[0]), vals)
         self.assertIn(int(res[1]), vals)
 
+        self.stop()
+
+    @async_test
+    @gen.engine
+    def test_set_bianry(self):
+        binary = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00C\x00'
+
+        yield gen.Task(self.client.set, 'binary', binary)
+        res = yield gen.Task(self.client.get, 'binary')
+
+        self.assertEqual(res, binary)
         self.stop()
