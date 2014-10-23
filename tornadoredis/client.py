@@ -27,6 +27,28 @@ Message = namedtuple('Message', ('kind', 'channel', 'body', 'pattern'))
 PY3 = sys.version > '3'
 
 
+if not PY3:
+    from itertools import imap
+    basestring = basestring
+    unicode = unicode
+    bytes = str
+    long = long
+    b = lambda x: x
+else:
+    imap = map
+
+    basestring = str
+    unicode = str
+    bytes = bytes
+    long = int
+    b = lambda x: x.encode('latin-1') if not isinstance(x, bytes) else x
+
+SYM_STAR = b('*')
+SYM_DOLLAR = b('$')
+SYM_CRLF = b('\r\n')
+SYM_EMPTY = b('')
+
+
 class CmdLine(object):
     def __init__(self, cmd, *args, **kwargs):
         self.cmd = cmd
@@ -136,7 +158,7 @@ def reply_info(response, *args):
                 sub_dict[k] = v
         return sub_dict
     for line in response.splitlines():
-        line = line.strip()
+        line = line.strip().decode()
         if line and not line.startswith('#'):
             key, value = line.split(':')
             try:
@@ -159,7 +181,7 @@ def reply_map(*funcs):
 
 
 def to_list(source):
-    if isinstance(source, str):
+    if isinstance(source, (bytes, str)):
         return [source]
     else:
         return list(source)
@@ -225,7 +247,7 @@ class Client(object):
 
     def __init__(self, host='localhost', port=6379, unix_socket_path=None,
                  password=None, selected_db=None, io_loop=None,
-                 connection_pool=None):
+                 connection_pool=None, encoding='utf-8', encoding_errors='strict'):
         self._io_loop = io_loop or IOLoop.current()
         self._connection_pool = connection_pool
         self._weak = weakref.proxy(self)
@@ -244,6 +266,8 @@ class Client(object):
         self.password = password
         self.selected_db = selected_db or 0
         self._pipeline = None
+        self.encoding = encoding
+        self.encoding_errors = encoding_errors
 
     def __del__(self):
         try:
@@ -351,24 +375,31 @@ class Client(object):
         if callback:
             callback(False)
 
-    #### formatting
     def encode(self, value):
-        if not isinstance(value, str):
-            if not PY3 and isinstance(value, unicode):
-                value = value.encode('utf-8')
-            else:
-                value = str(value)
-        if PY3:
-            value = value.encode('utf-8')
+        "Return a bytestring representation of the value"
+        if isinstance(value, bytes):
+            return value
+        elif isinstance(value, (int, long)):
+            value = b(str(value))
+        elif isinstance(value, float):
+            value = b(repr(value))
+        elif not isinstance(value, basestring):
+            value = str(value)
+        if isinstance(value, unicode):
+            value = value.encode(self.encoding, self.encoding_errors)
         return value
 
     def format_command(self, *tokens, **kwargs):
         cmds = []
-        for t in tokens:
-            e_t = self.encode(t)
-            e_t_s = to_basestring(e_t)
-            cmds.append('$%s\r\n%s\r\n' % (len(e_t), e_t_s))
-        return '*%s\r\n%s' % (len(tokens), ''.join(cmds))
+
+        buff = SYM_EMPTY.join((SYM_STAR, b(str(len(tokens))), SYM_CRLF))
+
+        for arg in imap(self.encode, tokens):
+            buff = SYM_EMPTY.join(
+                (buff, SYM_DOLLAR, b(str(len(arg))), SYM_CRLF, arg, SYM_CRLF))
+
+        return buff
+
 
     def format_reply(self, cmd_line, data):
         if cmd_line.cmd not in REPLY_MAP:
@@ -458,7 +489,6 @@ class Client(object):
         if not response:
             raise ResponseError('EmptyResponse')
         else:
-            response = to_basestring(response)
             response = response[:-2]
         callback(response)
 
@@ -1033,14 +1063,14 @@ class Client(object):
         self._subscribe('PSUBSCRIBE', channels, callback=callback)
 
     def _subscribe(self, cmd, channels, callback=None):
-        if isinstance(channels, str) or (not PY3 and isinstance(channels, unicode)):
+        if isinstance(channels, (bytes, str)) or (not PY3 and isinstance(channels, unicode)):
             channels = [channels]
         if not self.subscribed:
             listen_callback = None
             original_cb = stack_context.wrap(callback) if callback else None
 
             def _cb(*args, **kwargs):
-                self.on_subscribed(Message(kind='subscribe',
+                self.on_subscribed(Message(kind=b'subscribe',
                                            channel=channels[0],
                                            body=None,
                                            pattern=None))
@@ -1076,7 +1106,7 @@ class Client(object):
         self._unsubscribe('PUNSUBSCRIBE', channels, callback=callback)
 
     def _unsubscribe(self, cmd, channels, callback=None):
-        if isinstance(channels, str) or (not PY3 and isinstance(channels, unicode)):
+        if isinstance(channels, (bytes, str)) or (not PY3 and isinstance(channels, unicode)):
             channels = [channels]
         if callback:
             cb = stack_context.wrap(callback)
@@ -1137,7 +1167,7 @@ class Client(object):
                     self.subscribed = set()
                     # send a message to caller:
                     # Message(kind='disconnect', channel=set(channel1, ...))
-                    callback(reply_pubsub_message(('disconnect', channels)))
+                    callback(reply_pubsub_message((b'disconnect', channels)))
                     return
 
                 response = self.process_data(data, cmd_listen)
@@ -1149,7 +1179,7 @@ class Client(object):
 
                 result = self.format_reply(cmd_listen, response)
 
-                if result and result.kind in ('subscribe', 'psubscribe'):
+                if result and result.kind in (b'subscribe', b'psubscribe'):
                     self.on_subscribed(result)
                     try:
                         __, cb = self.subscribe_callbacks.popleft()
@@ -1158,7 +1188,7 @@ class Client(object):
                     if cb:
                         cb(True)
 
-                if result and result.kind in ('unsubscribe', 'punsubscribe'):
+                if result and result.kind in (b'unsubscribe', b'punsubscribe'):
                     self.on_unsubscribed([result.channel])
 
                 callback(result)
@@ -1275,7 +1305,7 @@ class Pipeline(Client):
         return results
 
     def format_pipeline_request(self, command_stack):
-        return ''.join(self.format_command(c.cmd, *c.args, **c.kwargs)
+        return SYM_EMPTY.join(self.format_command(c.cmd, *c.args, **c.kwargs)
                        for c in command_stack)
 
     @gen.engine

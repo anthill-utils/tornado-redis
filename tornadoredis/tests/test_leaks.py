@@ -54,7 +54,7 @@ class MiscTestCase(RedisTestCase):
             n = '%d' % random.randint(1, 1000)
             yield gen.Task(c.set, 'foo', n)
             n2 = yield gen.Task(c.get, 'foo')
-            self.assertEqual(n, n2)
+            self.assertEqual(n.encode(), n2)
             tornado.ioloop.IOLoop.current().add_callback(callback)
 
         yield gen.Task(some_code, on_destroy=(yield gen.Callback('destroy')))
@@ -77,7 +77,7 @@ class MiscTestCase(RedisTestCase):
                     n = '%d' % random.randint(1, 1000)
                     yield gen.Task(c.set, 'foo', n)
                     n2 = yield gen.Task(c.get, 'foo')
-                    self.assertEqual(n, n2)
+                    self.assertEqual(n.encode(), n2)
                 # Force pypy to do the garbage collection
                 if PYPY_INTERPRETER:
                     del c
@@ -100,7 +100,7 @@ class MiscTestCase(RedisTestCase):
             for n in range(1, 5):
                 yield gen.Task(c.set, 'foo', n)
                 n2 = yield gen.Task(c.get, 'foo')
-                self.assertEqual('%d' % n, n2)
+                self.assertEqual(str(n).encode(), n2)
             # Force pypy to do the garbage collection
             if PYPY_INTERPRETER:
                 del c

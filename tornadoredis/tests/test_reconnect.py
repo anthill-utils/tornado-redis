@@ -146,7 +146,7 @@ class DisconnectTestCase(AsyncTestCase):
         cb_disconnect = (yield gen.Callback('disconnect'))
 
         def handle_message(msg):
-            if msg.kind == 'disconnect':
+            if msg.kind == b'disconnect':
                 cb_disconnect(msg.channel)
 
         yield gen.Task(self.client.subscribe, 'foo')

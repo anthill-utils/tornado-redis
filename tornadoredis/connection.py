@@ -120,8 +120,6 @@ class Connection(object):
         else:
             cb = None
         try:
-            if PY3:
-                data = bytes(data, encoding='utf-8')
             self._stream.write(data, callback=cb)
         except IOError as e:
             self.disconnect()

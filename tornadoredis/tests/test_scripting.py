@@ -43,12 +43,12 @@ class ScriptingTestCase(RedisTestCase):
         args = [value]
 
         results = yield gen.Task(self.client.eval, script, keys, args)
-        self.assertEqual('foo', results)
+        self.assertEqual(b'foo', results)
         # compare keys after eval command and initial keys (_keys_copy)
         # to make sure that *eval* command does not change keys list
         self.assertEqual(keys, _keys_copy)
         results = yield gen.Task(self.client.eval, script, keys, args)
-        self.assertEqual('bar', results)
+        self.assertEqual(b'bar', results)
         self.assertEqual(keys, _keys_copy)
 
         self.stop()

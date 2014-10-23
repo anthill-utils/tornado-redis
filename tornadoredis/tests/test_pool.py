@@ -49,7 +49,7 @@ class ConnectionPoolTestCase(RedisTestCase):
                       for k in keys]
         c3 = self._new_client(pool)
         vals_saved = yield gen.Task(c3.mget, keys)
-        self.assertEqual(vals, vals_saved)
+        self.assertEqual([v.encode() for v in vals], vals_saved)
 
         self.stop()
 
@@ -66,8 +66,8 @@ class ConnectionPoolTestCase(RedisTestCase):
         yield gen.Task(c.disconnect)
         v1_saved, v2_saved = yield gen.Task(c.mget, ('foo1', 'foo2'))
         yield gen.Task(c.disconnect)
-        self.assertEqual(v1, v1_saved)
-        self.assertEqual(v2, v2_saved)
+        self.assertEqual(v1.encode(), v1_saved)
+        self.assertEqual(v2.encode(), v2_saved)
 
         # Do the same thing with anither client instance
         c = self._new_client(pool)
@@ -78,8 +78,8 @@ class ConnectionPoolTestCase(RedisTestCase):
         yield gen.Task(c.set, 'foo2', v2)
         yield gen.Task(c.disconnect)
         v1_saved, v2_saved = yield gen.Task(c.mget, ('foo1', 'foo2'))
-        self.assertEqual(v1, v1_saved)
-        self.assertEqual(v2, v2_saved)
+        self.assertEqual(v1.encode(), v1_saved)
+        self.assertEqual(v2.encode(), v2_saved)
 
         self.stop()
 
@@ -93,8 +93,8 @@ class ConnectionPoolTestCase(RedisTestCase):
                             pool, 'foo2')
         c3 = self._new_client(pool)
         v1_saved, v2_saved = yield gen.Task(c3.mget, ('foo1', 'foo2'))
-        self.assertEqual(v1, v1_saved)
-        self.assertEqual(v2, v2_saved)
+        self.assertEqual(v1.encode(), v1_saved)
+        self.assertEqual(v2.encode(), v2_saved)
 
         self.stop()
 
@@ -115,8 +115,8 @@ class ConnectionPoolTestCase(RedisTestCase):
         p.get('foo1', v1)
         p.get('foo2', v2)
         v1_saved, v2_saved = yield gen.Task(p.execute)
-        self.assertEqual(v1, v1_saved)
-        self.assertEqual(v2, v2_saved)
+        self.assertEqual(v1.encode(), v1_saved)
+        self.assertEqual(v2.encode(), v2_saved)
         self.stop()
 
     @async_test
@@ -128,7 +128,7 @@ class ConnectionPoolTestCase(RedisTestCase):
             n = '%d' % randint(1, 1000)
             yield gen.Task(c.set, 'foo', n)
             n2 = yield gen.Task(c.get, 'foo')
-            self.assertEqual(n, n2)
+            self.assertEqual(n.encode(), n2)
 
             if PYPY_INTERPRETER:
                 tornado.ioloop.IOLoop.current().add_callback(callback)
@@ -165,10 +165,10 @@ class ConnectionPoolTestCase(RedisTestCase):
         c = self._new_client()
         yield gen.Task(c.select, 10)
         res = yield gen.Task(c.get, 'foo')
-        self.assertEqual(res, '%d' % foo_10)
+        self.assertEqual(res, str(foo_10).encode())
         yield gen.Task(c.select, 9)
         res = yield gen.Task(c.get, 'foo')
-        self.assertEqual(res, '%d' % foo_9)
+        self.assertEqual(res, str(foo_9).encode())
 
         self.stop()
 
@@ -184,10 +184,10 @@ class ConnectionPoolTestCase(RedisTestCase):
         yield gen.Task(c.set, 'foo', foo_10)
 
         n10 = yield gen.Task(c.get , 'foo')
-        self.assertTrue(n10, foo_10)
+        self.assertTrue(n10, foo_10.encode())
         yield gen.Task(c.select, 9)
         n9 = yield gen.Task(c.get, 'foo')
-        self.assertEqual(n9, foo_9)
+        self.assertEqual(n9, foo_9.encode())
         yield gen.Task(c.disconnect)
 
         # Check the values using a connection pool and pipelines
@@ -199,16 +199,7 @@ class ConnectionPoolTestCase(RedisTestCase):
         res = yield gen.Task(pipe.execute)
         self.assertTrue(res)
         res = res[0]
-        self.assertEqual(res, foo_9)
-
-        # c = self._new_client(pool=pool, selected_db=10)
-        # pipe = c.pipeline()
-        # pipe.get('foo')
-        # res = yield gen.Task(pipe.execute)
-        # self.assertTrue(res)
-        # res = res[0]
-        # self.assertEqual(res, foo_10)
-        # c.disconnect()
+        self.assertEqual(res, foo_9.encode())
 
         yield gen.Task(c.disconnect)
 
@@ -218,7 +209,7 @@ class ConnectionPoolTestCase(RedisTestCase):
         res = yield gen.Task(pipe.execute)
         self.assertTrue(res)
         res = res[0]
-        self.assertEqual(res, foo_9)
+        self.assertEqual(res, foo_9.encode())
 
         self.stop()
 
@@ -231,6 +222,6 @@ class ConnectionPoolTestCase(RedisTestCase):
                       for k in keys]
         c3 = self._new_client(pool)
         vals_saved = yield gen.Task(c3.mget, keys)
-        self.assertEqual(vals, vals_saved)
+        self.assertEqual([v.encode() for v in vals], vals_saved)
 
         self.stop()

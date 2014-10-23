@@ -39,6 +39,7 @@ class BaseSubscriber(object):
         callback - a callback function
         """
         if isinstance(channel_name, list) or isinstance(channel_name, tuple):
+            channel_name = [self.redis.encode(c) for c in channel_name]
             if len(channel_name) > 1:
                 _cb = lambda *args, **kwargs: self.subscribe(channel_name[1:],
                                                              subscriber,
@@ -47,6 +48,7 @@ class BaseSubscriber(object):
                 _cb = callback
             self.subscribe(channel_name[0], subscriber, callback=_cb)
         else:
+            channel_name = self.redis.encode(channel_name)
             self.subscribers[channel_name][subscriber] += 1
             self.subscriber_count[channel_name] += 1
             if self.subscriber_count[channel_name] == 1:
@@ -73,6 +75,9 @@ class BaseSubscriber(object):
         Unsubscribes the redis client from the channel
         if there are no subscribers left.
         """
+
+        channel_name = self.redis.encode(channel_name)
+
         self.subscribers[channel_name][subscriber] -= 1
         if self.subscribers[channel_name][subscriber] <= 0:
             del self.subscribers[channel_name][subscriber]
@@ -93,7 +98,7 @@ class BaseSubscriber(object):
         if not msg:
             return
 
-        if msg.kind == 'disconnect':
+        if msg.kind == b'disconnect':
             # Disconnected from the Redis server
             # Close the redis connection
             self.close()
@@ -139,7 +144,7 @@ class SockJSSubscriber(BaseSubscriber):
     def on_message(self, msg):
         if not msg:
             return
-        if msg.kind == 'message' and msg.body:
+        if msg.kind == b'message' and msg.body:
             # Get the list of subscribers for this channel
             subscribers = list(self.subscribers[msg.channel].keys())
             if subscribers:
@@ -160,7 +165,7 @@ class SocketIOSubscriber(BaseSubscriber):
     def on_message(self, msg):
         if not msg:
             return
-        if msg.kind == 'message' and msg.body:
+        if msg.kind == b'message' and msg.body:
             # Get the list of subscribers for this channel
             subscribers = list(self.subscribers[msg.channel].keys())
             if subscribers:

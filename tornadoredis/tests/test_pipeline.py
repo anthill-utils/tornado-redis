@@ -15,7 +15,7 @@ class PipelineTestCase(RedisTestCase):
         pipe.mget(('foo', 'bar'))
 
         res = yield gen.Task(pipe.execute)
-        self.assertEqual(res, [True, True, ['123', '456', ]])
+        self.assertEqual(res, [True, True, [b'123', b'456', ]])
         self.stop()
 
     @async_test
@@ -27,7 +27,7 @@ class PipelineTestCase(RedisTestCase):
         pipe.mget(('foo', 'bar'))
 
         res = yield gen.Task(pipe.execute)
-        self.assertEqual(res, [True, True, ['123', '456', ]])
+        self.assertEqual(res, [True, True, [b'123', b'456', ]])
         self.stop()
 
     @async_test
@@ -52,14 +52,14 @@ class PipelineTestCase(RedisTestCase):
         pipe.rpush('foo', '2')
         pipe.lrange('foo', 0, -1)
         res = yield gen.Task(pipe.execute)
-        self.assertEqual(res, [True, 2, ['1', '2']])
+        self.assertEqual(res, [True, 2, [b'1', b'2']])
 
         pipe.sadd('bar', '3')
         pipe.sadd('bar', '4')
         pipe.smembers('bar')
         pipe.scard('bar')
         res = yield gen.Task(pipe.execute)
-        self.assertEqual(res, [1, 1, set(['3', '4']), 2])
+        self.assertEqual(res, [1, 1, set([b'3', b'4']), 2])
 
         self.stop()
 
@@ -74,12 +74,12 @@ class PipelineTestCase(RedisTestCase):
 
         pipe.get('foo')
         res = yield gen.Task(self.client.get, 'foo')
-        self.assertEqual(res, '123')
+        self.assertEqual(res, b'123')
 
         pipe.hgetall('bar')
 
         res = yield gen.Task(pipe.execute)
-        self.assertEqual(res, ['123', {'zar': 'gza'}])
+        self.assertEqual(res, [b'123', {b'zar': b'gza'}])
         self.stop()
 
     @async_test
@@ -93,12 +93,12 @@ class PipelineTestCase(RedisTestCase):
 
         pipe.get('foo')
         res = yield gen.Task(self.client.get, 'foo')
-        self.assertEqual(res, '123')
+        self.assertEqual(res, b'123')
 
         pipe.hgetall('bar')
 
         res = yield gen.Task(pipe.execute)
-        self.assertEqual(res, ['123', {'zar': 'gza'}])
+        self.assertEqual(res, [b'123', {b'zar': b'gza'}])
 
         self.stop()
 
@@ -112,7 +112,7 @@ class PipelineTestCase(RedisTestCase):
         pipe = self.client.pipeline(transactional=True)
         pipe.get('bar')
         res = yield gen.Task(pipe.execute)
-        self.assertEqual(res, ['zar', ])
+        self.assertEqual(res, [b'zar', ])
 
         self.stop()
 
@@ -161,7 +161,7 @@ class PipelineTestCase(RedisTestCase):
         pipe = self.client.pipeline(transactional=True)
         pipe.get('foo')
         res = yield gen.Task(pipe.execute)
-        self.assertEqual(res, ['zar'])
+        self.assertEqual(res, [b'zar'])
 
         self.stop()
 
@@ -185,8 +185,8 @@ class PipelineTestCase(RedisTestCase):
             1, 1,
             1, 2,
             0, 1,
-            [('a', 1.0), ('b', 2.0)],
-            ['a', 'b'],
+            [(b'a', 1.0), (b'b', 2.0)],
+            [b'a', b'b'],
         ])
         self.stop()
 
@@ -210,8 +210,8 @@ class PipelineTestCase(RedisTestCase):
             1, 1,
             1, 2,
             0, 1,
-            [('a', 1.0), ('b', 2.0)],
-            ['a', 'b'],
+            [(b'a', 1.0), (b'b', 2.0)],
+            [b'a', b'b'],
         ])
         self.stop()
 
@@ -227,7 +227,7 @@ class PipelineTestCase(RedisTestCase):
         self.assertEqual(res, [
             True,
             True,
-            {'bar': 'aaa', 'zar': 'bbb'}
+            {b'bar': b'aaa', b'zar': b'bbb'}
         ])
         self.stop()
 
@@ -243,7 +243,7 @@ class PipelineTestCase(RedisTestCase):
         self.assertEqual(res, [
             True,
             True,
-            {'bar': 'aaa', 'zar': 'bbb'}
+            {b'bar': b'aaa', b'zar': b'bbb'}
         ])
         self.stop()
 
@@ -256,5 +256,5 @@ class PipelineTestCase(RedisTestCase):
             pipe.mget(('foo', 'bar'))
 
             res = yield gen.Task(pipe.execute)
-        self.assertEqual(res, [True, True, ['123', '456', ]])
+        self.assertEqual(res, [True, True, [b'123', b'456', ]])
         self.stop()
