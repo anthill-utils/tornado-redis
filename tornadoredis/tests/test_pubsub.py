@@ -13,7 +13,7 @@ from unittest import skip
 class PubSubTestCase(RedisTestCase):
 
     def setUp(self):
-        super(PubSubTestCase, self).setUp()
+        super(PubSubTestCase, self).setUp(flush=False)
         self._message_count = 0
         self.publisher = self._new_client()
 
