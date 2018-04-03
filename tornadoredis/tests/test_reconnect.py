@@ -60,7 +60,7 @@ class DisconnectTestCase(AsyncTestCase):
         #self._server_io_loop = IOLoop()
         # self._server_io_loop
         super(DisconnectTestCase, self).setUp()
-        self._server = DisconnectingRedisServer(io_loop=self.io_loop)
+        self._server = DisconnectingRedisServer()
         self._server.listen(self.test_port)
         self.server_running = True
         self.client = self._new_client()
@@ -128,7 +128,7 @@ class DisconnectTestCase(AsyncTestCase):
             pass
 
         # restart server
-        self._server = DisconnectingRedisServer(io_loop=self.io_loop)
+        self._server = DisconnectingRedisServer()
         self._server.listen(self.test_port)
         self.server_running = True
         self._sleep()
